@@ -1,0 +1,79 @@
+# ============================================================
+# 始祖鸟德国站监控 · 配置
+# 改完提交到仓库即可生效（下一次定时运行就会用新配置）
+# ============================================================
+
+country: de            # 德国站
+language: en           # 商品名用英文（改成 de 就是德语名）
+sites: [main, outlet]  # main = 正价站 arcteryx.com，outlet = 奥莱 outlet.arcteryx.com
+
+# 每次扫描的大类（默认就是全站：男、女、配件、背包、鞋）
+categories: [mens, womens, accessories, packs, footwear]
+
+# 每次运行最多抓多少个商品详情页来看尺码库存。
+# 关注规则匹配到的商品超过这个数时会分批轮流检查，数字越大越及时，但请求越多、越容易被拦。
+max_detail_pages: 40
+
+subscribers:
+  # ---------------- 第一个人（你自己） ----------------
+  - name: 我
+    bark: BARK_ME          # GitHub Secret 的名字，Secret 的值填 Bark App 里复制的链接或 key
+    admin: true            # 接收系统消息（抓取失败、被拦截、恢复）
+    daily_digest: true     # 每晚发一条当天汇总
+
+    # 全站动态：不用指定款式，有变化就推一条汇总
+    feed:
+      new_products: [outlet, main]   # 上新
+      new_colours: [main]            # 老款出了新配色
+      price_drops: [outlet, main]    # 降价（正价站开始打折 / 奥莱再降价）
+      back_in_catalog: [outlet]      # 售罄下架后重新上架
+      gender: mens                   # 只看男款（配件、背包这类不分男女的照推）；删掉这行就是全部
+      # max_price: 500               # 只推最低价 ≤ 500 欧的
+      # min_discount: 30             # 只推折扣 ≥ 30% 的
+
+    # 关注清单：精确到尺码，有货/补货/降价时单独推送（会突破专注模式）
+    watch:
+      - name: 奥莱 Beta 外套 M 码
+        site: outlet
+        keywords: [beta, jacket]     # 名字里同时包含这些词（不分大小写）
+        gender: mens
+        sizes: [M]
+        max_price: 450
+
+      - name: 正价站 Atom Hoody 七折及以下
+        site: main
+        keywords: [atom hoody]
+        gender: mens
+        sizes: [M, L]
+        min_discount: 30
+
+      - name: 正价站 Gamma MX Hoody 黑色 M
+        url: https://arcteryx.com/de/en/shop/mens/gamma-mx-hoody-8485   # 直接贴商品链接
+        colours: [Black]
+        sizes: [M]
+
+  # ---------------- 朋友：去掉下面每行开头的 "# " 启用，并添加同名 Secret ----------------
+  # - name: 朋友A
+  #   bark: BARK_FRIEND_A
+  #   daily_digest: false
+  #   feed:
+  #     new_products: [outlet]
+  #     price_drops: [outlet]
+  #     gender: womens
+  #   watch:
+  #     - name: 奥莱 Atom 女款 S 码
+  #       site: outlet
+  #       keywords: [atom]
+  #       gender: womens
+  #       sizes: [S]
+
+# ---------------- 规则字段说明 ----------------
+# site:         outlet / main / 不写=两个站都看
+# url:          具体商品链接（写了就只看这一个商品）
+# keywords:     名字里必须同时包含的词
+# exclude:      名字里不能包含的词，比如 [pant, short]
+# gender:       mens / womens
+# sizes:        尺码，写法和官网一致：XS S M L XL / 鞋码 42 2/3 / 裤子 32 或 32-R
+# colours:      颜色，写官网上的颜色名；双色款写其中一个也行：Black 匹配 "Black"、"Black / Mongoose"，不匹配 "Black Sapphire"
+# max_price:    价格上限（欧元，按折后价）
+# min_discount: 最低折扣百分比，30 表示至少便宜 30%

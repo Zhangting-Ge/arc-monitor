@@ -1,0 +1,66 @@
+name: 始祖鸟监控
+
+on:
+  schedule:
+    - cron: "3-59/10 * * * *"   # 每 10 分钟（避开整点，GitHub 整点最拥堵）
+    - cron: "7 19 * * *"        # 每日汇总：UTC 19:07 = 柏林 20:07（冬令时）/ 21:07（夏令时）
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "test=连接测试 / run=立即检查一次 / digest=立即发日报"
+        type: choice
+        options: [test, run, digest]
+        default: test
+
+permissions:
+  contents: write   # 需要把 state/ 提交回仓库
+
+concurrency:
+  # 日报单独一组，避免被排队中的 10 分钟检查顶掉
+  group: arcmon-${{ (github.event.schedule == '7 19 * * *' || inputs.mode == 'digest') && 'digest' || 'check' }}
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: 运行
+        env:
+          SECRETS_JSON: ${{ toJSON(secrets) }}   # 让 config.yaml 里的 bark: XXX 能按名字取到对应 Secret
+          INPUT_MODE: ${{ github.event.inputs.mode }}
+          SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          MODE="$INPUT_MODE"
+          if [ -z "$MODE" ]; then
+            if [ "$SCHEDULE" = "7 19 * * *" ]; then MODE=digest; else MODE=run; fi
+          fi
+          echo "mode=$MODE"
+          python -m arcmon "$MODE"
+
+      - name: 保存状态
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p state
+          git add -A state
+          if git diff --cached --quiet; then
+            echo "状态无变化"
+            exit 0
+          fi
+          git commit -m "state: $(date -u +%Y-%m-%dT%H:%MZ) [skip ci]"
+          for i in 1 2 3; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            sleep 5
+          done
+          exit 1
