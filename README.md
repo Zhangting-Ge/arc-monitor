@@ -38,7 +38,7 @@ M（Black）有货了（库存紧张）
 1. **装 Bark**：在 App Store 装 [Bark](https://apps.apple.com/app/bark-customed-notifications/id1403753865)，打开后复制首页的推送链接（形如 `https://api.day.app/xxxxxxxx/...`）。
 2. **建 GitHub 仓库**：建议设为 **Public**。公开仓库的 Actions 免费且不限分钟数。私有仓库每月只有 2000 免费分钟，每 10 分钟跑一次约需 4300 分钟/月，会超额。如果要用私有仓库，把 `.github/workflows/monitor.yml` 里的 cron 改成 `3-59/30 * * * *`（每 30 分钟）。
 3. **上传文件**：把本项目全部文件传到仓库，包括 `.github/workflows/monitor.yml`。
-4. **添加 Bark 密钥**：仓库 Settings → Secrets and variables → Actions → New repository secret，名称填 `BARK_ME`，值填第 1 步复制的链接（只填 key 也行）。朋友的用 `BARK_FRIEND_A` 等名称，与 `config.yaml` 里的 `bark:` 一一对应。
+4. **添加 Bark 密钥**：仓库 Settings → Secrets and variables → Actions → New repository secret，名称填 `BARK_ME`，值填第 1 步复制的链接（只填 key 也行）。朋友的用 `BARK_FRIEND_A`、`BARK_FRIEND_B`、`BARK_FRIEND_C`，与 `config.yaml` 里的 `bark:` 一一对应（这几个名字已经写进 workflow，超过 3 个朋友要在 `monitor.yml` 的 env 里照样加一行）。
 5. **允许写回状态**：Settings → Actions → General → Workflow permissions，选 **Read and write permissions** 并保存。
 6. **连接测试**：打开 Actions 页 → 左侧选「始祖鸟监控」→ Run workflow，mode 选 `test`。手机收到「🧪 连接测试」并且两个站都显示 ✅，说明能正常抓取。
 7. **建立基线**：再手动运行一次，mode 选 `run`。手机会收到「始祖鸟监控已启动」和「📋 关注清单已生效」。
@@ -78,7 +78,7 @@ M（Black）有货了（库存紧张）
 
 规则改动后会被当作新规则：重新发一次「关注清单已生效」，不会把已有商品当成补货推送。
 
-**加朋友**：`config.yaml` 末尾有一段注释掉的「朋友A」模板，去掉每行开头的 `# ` 并改 `name`、尺码等，再到 GitHub 添加同名 Secret（如 `BARK_FRIEND_A`）。更多朋友就再复制一段。`daily_digest: false` 可以关掉日报，`admin: true` 的人会收到抓取失败等系统消息。
+**加朋友**：`config.yaml` 末尾有一段注释掉的「朋友A」模板，去掉每行开头的 `# ` 并改 `name`、尺码等，再到 GitHub 添加同名 Secret（`BARK_FRIEND_A` / `B` / `C` 已预留）。超过 3 个朋友时，除了复制一段配置，还要在 `.github/workflows/monitor.yml` 的 env 里加一行 `BARK_XXX: ${{ secrets.BARK_XXX }}`。`daily_digest: false` 可以关掉日报，`admin: true` 的人会收到抓取失败等系统消息。
 
 ## 关于"实时"
 

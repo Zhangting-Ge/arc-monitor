@@ -36,7 +36,12 @@ jobs:
 
       - name: 运行
         env:
-          SECRETS_JSON: ${{ toJSON(secrets) }}   # 让 config.yaml 里的 bark: XXX 能按名字取到对应 Secret
+          # config.yaml 里 bark: 写的名字要在这里列出来；加朋友超过 3 个就照样再加一行
+          BARK_ME: ${{ secrets.BARK_ME }}
+          BARK_FRIEND_A: ${{ secrets.BARK_FRIEND_A }}
+          BARK_FRIEND_B: ${{ secrets.BARK_FRIEND_B }}
+          BARK_FRIEND_C: ${{ secrets.BARK_FRIEND_C }}
+          MONITOR_CONFIG: ${{ secrets.MONITOR_CONFIG }}   # 可选：不想公开配置时把整个 config.yaml 放进这个 Secret
           INPUT_MODE: ${{ github.event.inputs.mode }}
           SCHEDULE: ${{ github.event.schedule }}
         run: |

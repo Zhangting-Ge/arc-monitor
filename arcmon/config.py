@@ -79,7 +79,7 @@ def parse_bark(value: str | None) -> BarkTarget | None:
 
 
 def _secret(name: str) -> str | None:
-    """先查环境变量，再查 GitHub Actions 传进来的 SECRETS_JSON。"""
+    """从环境变量读取（GitHub Actions 在 workflow 的 env 里把 Secret 传进来）。"""
     if not name:
         return None
     for n in (name, name.upper()):          # GitHub 的 Secret 名字一律是大写
