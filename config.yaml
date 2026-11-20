@@ -17,40 +17,19 @@ max_detail_pages: 40
 subscribers:
   # ---------------- 第一个人（你自己） ----------------
   - name: 我
-    bark: BARK_ME          # GitHub Secret 的名字，Secret 的值填 Bark App 里复制的链接或 key
+    bark: BARK_ME          # GitHub Secret 的名字
     admin: true            # 接收系统消息（抓取失败、被拦截、恢复）
-    daily_digest: true     # 每晚发一条当天汇总
+    daily_digest: true     # 每晚 20:07 发当天汇总
 
-    # 全站动态：不用指定款式，有变化就推一条汇总
+    # 全站动态：只看男款，重点是奥莱
     feed:
-      new_products: [outlet, main]   # 上新
-      new_colours: [main]            # 老款出了新配色
-      price_drops: [outlet, main]    # 降价（正价站开始打折 / 奥莱再降价）
-      back_in_catalog: [outlet]      # 售罄下架后重新上架
-      gender: mens                   # 只看男款（配件、背包这类不分男女的照推）；删掉这行就是全部
-      # max_price: 500               # 只推最低价 ≤ 500 欧的
-      # min_discount: 30             # 只推折扣 ≥ 30% 的
+      new_products: [outlet]          # 奥莱上新
+      back_in_catalog: [outlet]       # 奥莱售罄后重新上架
+      price_drops: [outlet, main]     # 降价（正价站开始打折 / 奥莱再降价）
+      gender: mens                    # 只推男款（配件、背包这类不分男女的照推）
 
-    # 关注清单：精确到尺码，有货/补货/降价时单独推送（会突破专注模式）
-    watch:
-      - name: 奥莱 Beta 外套 M 码
-        site: outlet
-        keywords: [beta, jacket]     # 名字里同时包含这些词（不分大小写）
-        gender: mens
-        sizes: [M]
-        max_price: 450
-
-      - name: 正价站 Atom Hoody 七折及以下
-        site: main
-        keywords: [atom hoody]
-        gender: mens
-        sizes: [M, L]
-        min_discount: 30
-
-      - name: 正价站 Gamma MX Hoody 黑色 M
-        url: https://arcteryx.com/de/en/shop/mens/gamma-mx-hoody-8485   # 直接贴商品链接
-        colours: [Black]
-        sizes: [M]
+    # 关注清单：暂时不盯具体款式。想盯某一款时加在这里
+    watch: []
 
   # ---------------- 朋友：去掉下面每行开头的 "# " 启用，并添加同名 Secret ----------------
   # - name: 朋友A
