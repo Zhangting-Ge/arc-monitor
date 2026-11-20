@@ -480,6 +480,26 @@
    "since": "2026-11-20",
    "slug": "beta-down-mitten-8513"
   },
+  "X000008535": {
+   "colours": [
+    "Pineberry"
+   ],
+   "gender": "womens",
+   "id": "X000008535",
+   "img": "https://images.arcteryx.com/S26/1350x1710/Kyanite-Hoody-W-Pineberry.jpg",
+   "is_new": false,
+   "low": 140,
+   "low_d": "2026-11-20",
+   "max": 140,
+   "min": 140,
+   "name": "Kyanite Hoody Women's",
+   "price": 200,
+   "seen": [
+    "Pineberry"
+   ],
+   "since": "2026-11-20",
+   "slug": "womens/kyanite-hoody-8535"
+  },
   "X000008896": {
    "colours": [
     "Black",
@@ -501,6 +521,26 @@
    ],
    "since": "2026-11-20",
    "slug": "womens/sentinel-pant-8896"
+  },
+  "X000008907": {
+   "colours": [
+    "Tatsu"
+   ],
+   "gender": "womens",
+   "id": "X000008907",
+   "img": "https://images.arcteryx.com/F25/1350x1710/Gamma-MX-Straight-Leg-Pant-W-Tatsu.jpg",
+   "is_new": false,
+   "low": 210,
+   "low_d": "2026-11-20",
+   "max": 210,
+   "min": 210,
+   "name": "Gamma MX Straight Leg Pant Women's",
+   "price": 300,
+   "seen": [
+    "Tatsu"
+   ],
+   "since": "2026-11-20",
+   "slug": "womens/gamma-mx-straight-leg-pant-8907"
   },
   "X000008984": {
    "colours": [
@@ -1121,6 +1161,7 @@
    "low_d": "2026-11-20",
    "max": 168,
    "min": 168,
+   "miss": 1,
    "name": "Atom SL Jacket Women's",
    "price": 240,
    "seen": [
@@ -3183,6 +3224,26 @@
    ],
    "since": "2026-11-20",
    "slug": "mens/norvan-downword-logo-tank-0344"
+  },
+  "X000010360": {
+   "colours": [
+    "Black Heather II"
+   ],
+   "gender": "mens",
+   "id": "X000010360",
+   "img": "https://images.arcteryx.com/F25/1350x1710/Covert-1-2-Zip-Neck-Black-Heather-II.jpg",
+   "is_new": false,
+   "low": 112,
+   "low_d": "2026-11-20",
+   "max": 112,
+   "min": 112,
+   "name": "Covert 1/2 Zip Neck Men's",
+   "price": 160,
+   "seen": [
+    "Black Heather II"
+   ],
+   "since": "2026-11-20",
+   "slug": "mens/covert-1-2-zip-neck-0360"
   },
   "X000010367": {
    "colours": [

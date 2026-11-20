@@ -51,7 +51,7 @@
    ],
    "gender": "unisex",
    "id": "X000006583",
-   "img": "https://images.arcteryx.com/F26/1350x1710/Rho-Glove-Black.jpg",
+   "img": "https://images.arcteryx.com/S27/1350x1710/Rho-Glove-Black.jpg",
    "is_new": false,
    "low": 40,
    "low_d": "2026-11-20",
@@ -4332,6 +4332,7 @@
    "low_d": "2026-11-20",
    "max": 999999,
    "min": 999999,
+   "miss": 1,
    "name": "Sunna Tank Women's",
    "price": 60,
    "seen": [
