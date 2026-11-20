@@ -23,7 +23,11 @@ FEED_KINDS = {
     "new_colour": "new_colours",
     "price_drop": "price_drops",
     "back_in_catalog": "back_in_catalog",
+    "promo_start": "promo",
+    "promo_end": "promo",
+    "banner_change": "banner",
 }
+SITE_LEVEL = {"promo_start", "promo_end", "banner_change"}   # 整站级别的事件，不按商品过滤
 
 
 class ConfigError(Exception):
@@ -50,6 +54,12 @@ def _sites(v, default: list[str]) -> list[str]:
 
 def _norm(s: str) -> str:
     return re.sub(r"\s+", " ", str(s)).strip().lower()
+
+
+def size_matches(label: str, wants: list[str]) -> bool:
+    """官网尺码 label 是否属于想要的尺码。裤子 "32-R" 能被 "32" 匹配。"""
+    s = _norm(label)
+    return any(s == _norm(w) or s.split("-")[0] == _norm(w) for w in wants)
 
 
 def discount_pct(price, regular) -> int:
@@ -131,10 +141,8 @@ class WatchRule:
         return True
 
     def wants_variant(self, v: dict, has_sizes: bool) -> bool:
-        if self.sizes and has_sizes:
-            size = _norm(v["size"])
-            if not any(size == _norm(s) or size.split("-")[0] == _norm(s) for s in self.sizes):
-                return False
+        if self.sizes and has_sizes and not size_matches(v["size"], self.sizes):
+            return False
         if self.colours:
             # 整名匹配；双色款（"Black / Mongoose"）写其中一个也算。"Black" 不会匹配 "Black Sapphire"
             label = _norm(v["colour"])
@@ -154,15 +162,18 @@ class Feed:
     new_colours: list[str] = field(default_factory=list)
     price_drops: list[str] = field(default_factory=list)
     back_in_catalog: list[str] = field(default_factory=list)
+    promo: list[str] = field(default_factory=list)     # 全场折上折 / 打折开始、结束
+    banner: list[str] = field(default_factory=list)    # 首页活动横幅变化
     gender: str | None = None
     max_price: float | None = None
     min_discount: int | None = None
+    sizes: list[str] = field(default_factory=list)     # 推送里标出这些尺码哪些颜色有货
 
     def wants(self, ev: dict) -> bool:
         kind = FEED_KINDS.get(ev["type"])
         if not kind or ev["site"] not in getattr(self, kind):
             return False
-        return self.passes_filters(ev)
+        return ev["type"] in SITE_LEVEL or self.passes_filters(ev)
 
     def passes_filters(self, ev: dict) -> bool:
         if self.gender and ev.get("gender") not in (self.gender, "unisex"):
@@ -271,6 +282,9 @@ def load_config(path: str = "config.yaml") -> Config:
             new_colours=_sites(f["new_colours"], sites) if f.get("new_colours") else [],
             price_drops=_sites(f["price_drops"], sites) if f.get("price_drops") else [],
             back_in_catalog=_sites(f["back_in_catalog"], sites) if f.get("back_in_catalog") else [],
+            promo=_sites(f["promo"], sites) if f.get("promo") else [],
+            banner=_sites(f["banner"], sites) if f.get("banner") else [],
+            sizes=[str(x) for x in _list(f.get("sizes"))],
             gender=f.get("gender"),
             max_price=float(f["max_price"]) if f.get("max_price") is not None else None,
             min_discount=int(f["min_discount"]) if f.get("min_discount") else None,

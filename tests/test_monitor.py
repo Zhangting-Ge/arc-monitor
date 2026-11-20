@@ -36,6 +36,7 @@ class FakeSite:
         self.stock_override = {}  # (host, slug, colour, size) -> status
         self.blocked = set()
         self.requests = []
+        self.banner = "Just landed"
 
     # ---- 模拟修改 ----
     def find(self, host, slug):
@@ -74,13 +75,22 @@ class FakeSite:
             x = self.find(host, slug)
             cols = [c["label"] for c in x["colourOptions"]]
             pr = x["priceRange"]
-            p = {"id": x["id"], "marketingName": x["marketingName"], "slug": slug,
+            name = x["marketingName"]
+            if any(w in name for w in ("Shoe", "Boot")):
+                sizes = ["41 1/3", "42", "42 2/3", "43 1/3"]          # 鞋码
+            elif any(w in name for w in ("Hat", "Cap", "Toque", "Beanie", "Glove")):
+                sizes = ["SM", "LXL"]
+            elif any(w in name for w in ("Backpack", "Pack", "Bag")):
+                sizes = []                                            # 均码
+            else:
+                sizes = SIZES
+            p = {"id": x["id"], "marketingName": name, "slug": slug,
                  "mainImage": {"url": "https://img/x.jpg"},
                  "colourOptions": [{"id": str(i), "label": c} for i, c in enumerate(cols)],
-                 "sizeOptions": {"options": [{"label": s, "value": s} for s in SIZES]},
+                 "sizeOptions": {"options": [{"label": s, "value": s} for s in sizes]},
                  "variants": []}
             for i, c in enumerate(cols):
-                for s in SIZES:
+                for s in (sizes or [None]):
                     h = int(hashlib.md5(f"{slug}{c}{s}".encode()).hexdigest(), 16) % 3
                     p["variants"].append({"colourId": str(i), "sizeId": s,
                                           "stockStatus": ["InStock", "LowStock", "OutOfStock"][h],
@@ -88,7 +98,7 @@ class FakeSite:
         cmap = {str(c["id"]): c["label"] for c in p["colourOptions"]}
         smap = {str(o["value"]): o["label"] for o in p["sizeOptions"]["options"]}
         for v in p["variants"]:
-            k = (host, slug, cmap[str(v["colourId"])], smap.get(str(v["sizeId"])))
+            k = (host, slug, cmap[str(v["colourId"])], smap.get(str(v["sizeId"])) if v["sizeId"] else None)
             if k in self.stock_override:
                 v["stockStatus"] = self.stock_override[k]
         return p
@@ -117,6 +127,12 @@ class FakeSite:
             except KeyError:
                 return 404, "not found"
             return 200, json.dumps({"pageProps": {"product": json.dumps(prod)}})
+        if html and u.path.rstrip("/") == "/de/en":
+            nd = {"buildId": "HOME", "props": {"pageProps": {
+                "heroBanner": {"eyebrow": None, "title": self.banner, "description": None},
+                "navigationData": [{"promoMessage": {"content": [{"children": [
+                    {"text": "Free Shipping | Free "}, {"text": "Returns"}]}]}}]}}}
+            return 200, f'<html><script id="__NEXT_DATA__" type="application/json">{json.dumps(nd)}</script></html>'
         if html:
             return 200, f'<html><script id="__NEXT_DATA__">{{"buildId":"{BUILD}"}}</script></html>'
         return 404, ""
@@ -133,7 +149,10 @@ subscribers:
       new_colours: [main]
       price_drops: [outlet, main]
       back_in_catalog: [outlet]
+      promo: [outlet, main]
+      banner: [outlet]
       gender: mens
+      sizes: [M]
     watch:
       - name: 奥莱 Beta 外套 M
         site: outlet
@@ -225,7 +244,9 @@ def test_full_cycle():
         assert any("新上架符合条件" in t for t in me), me
     feed_bodies = "\n".join(p.body for n, p in b3.sent if n == "我" and "：" in p.title)
     assert "Squamish Hoody Men's €140→€120" in feed_bodies, feed_bodies
-    assert "Atom Hoody Men's €280→€196（-30%）" in feed_bodies, feed_bodies
+    assert "Atom Hoody Men's €280→€196（7折，原价€280）" in feed_bodies, feed_bodies
+    assert "Squamish Hoody Men's €140→€120（6折，原价€200）" in feed_bodies, feed_bodies
+    assert "M码" in feed_bodies, feed_bodies
     assert "新配色：Test Green" in feed_bodies
     assert "Atom LT Hoody" not in feed_bodies          # 我只看男款
     assert not any("Gamma MX" in (p.subtitle or "") for n, p in b3.sent)   # 卖空只进日报，不推送
@@ -422,6 +443,59 @@ def test_colour_flap_and_null_price():
         "id": "X", "slug": "a", "colourOptions": [{"id": 1, "label": "Black"}], "sizeOptions": {"options": []},
         "variants": [{"colourId": 1, "sizeId": None, "stockStatus": "InStock", "price": 80, "discountPrice": None}]})}})
     assert d["variants"][0]["price"] == 80 and d["variants"][0]["size"] == "均码"
+
+
+def test_outlet_promo_extra_discount():
+    """奥莱全场在折扣价上再打 85 折（可能分两轮生效）→ 一条「折上折开始」，列男款 M 码有货的；之后恢复 → 「结束」。"""
+    cfg, sdir, site, t = _baseline()
+    O = "outlet.arcteryx.com"
+    keys = [k for k in site.plp if k.startswith(O + "|")]
+    items = {x["id"]: x for k in keys for x in site.plp[k]}
+    ids = sorted(items)
+    orig = {i: dict(items[i]["priceRange"]) for i in ids}
+
+    def apply(sel, f):
+        for k in keys:
+            for x in site.plp[k]:
+                if x["id"] in sel:
+                    pr = x["priceRange"]
+                    pr["minDiscountPrice"] = round(orig[x["id"]]["minDiscountPrice"] * f, 2)
+                    pr["maxDiscountPrice"] = round(orig[x["id"]]["maxDiscountPrice"] * f, 2)
+    half = set(ids[: len(ids) // 5])
+    apply(half, 0.85)                                  # 第一轮只有 20% 生效：还不算活动
+    s1 = _pushes_after(cfg, sdir, site, t)
+    assert not any("折上折" in p.title for _, p in s1), [p.title for _, p in s1]
+    apply(set(ids), 0.85)                              # 第二轮全部生效
+    s2 = _pushes_after(cfg, sdir, site, t + timedelta(minutes=10))
+    promo = [p for w, p in s2 if w == "我" and "折上折开始" in p.title]
+    assert len(promo) == 1, [(w, p.title) for w, p in s2]
+    print("\n" + promo[0].title + "\n" + promo[0].body)
+    assert "8.5折" in promo[0].title and "M码有货" in promo[0].body
+    assert "Women's" not in promo[0].body
+    assert promo[0].level == "timeSensitive"
+    assert not any(t.startswith("奥莱：降价") for t in [p.title for w, p in s2 if w == "我"])   # 不再逐条刷降价
+    # 活动期间奥莱上新：带颜色和 M 码
+    site.add_copy(O, "mens", "mens/squamish-hoody-0276", "X999000009", "mens/squamish-bf-hoody-9999",
+                  "Squamish BF Hoody Men's", price=120)
+    s3 = _pushes_after(cfg, sdir, site, t + timedelta(minutes=20))
+    feed = [p for w, p in s3 if w == "我" and p.title.startswith("奥莱：上新")]
+    assert feed and "颜色：" in feed[0].body and "M码" in feed[0].body and "6折" in feed[0].body, \
+        [(p.title, p.body) for _, p in s3]
+    b = Bark(dry_run=True)
+    digest(cfg, State(sdir), b, now=t + timedelta(minutes=30))
+    assert "折上折进行中" in b.sent[0][1].body, b.sent[0][1].body
+    apply(set(ids), 1.0)                               # 活动结束
+    s4 = _pushes_after(cfg, sdir, site, t + timedelta(minutes=40))
+    assert any("折上折结束" in p.title for _, p in s4), [p.title for _, p in s4]
+
+
+def test_banner_change():
+    cfg, sdir, site, t = _baseline()
+    site.banner = "Black Friday: extra 15% off outlet"
+    sent = _pushes_after(cfg, sdir, site, t)
+    b = [p for w, p in sent if "首页活动" in p.title]
+    assert b and "Black Friday" in b[0].body and "Just landed" in b[0].body, [(p.title, p.body) for _, p in sent]
+    assert _pushes_after(cfg, sdir, site, t + timedelta(minutes=10)) == []    # 没再变就不重复推
 
 
 def test_config_checks():

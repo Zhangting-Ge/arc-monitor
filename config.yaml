@@ -23,10 +23,13 @@ subscribers:
 
     # 全站动态：只看男款，重点是奥莱
     feed:
-      new_products: [outlet]          # 奥莱上新
+      new_products: [outlet]          # 奥莱上新（列出价格、几折、所有颜色、M 码哪些颜色有货）
       back_in_catalog: [outlet]       # 奥莱售罄后重新上架
       price_drops: [outlet, main]     # 降价（正价站开始打折 / 奥莱再降价）
+      promo: [outlet, main]           # 全场折上折开始/结束（如黑五奥莱在折扣价上再打 85 折）
+      banner: [outlet]                # 奥莱首页活动横幅变化
       gender: mens                    # 只推男款（配件、背包这类不分男女的照推）
+      sizes: [M]                      # 推送里标出 M 码哪些颜色有货，M 有货的排前面
 
     # 关注清单：暂时不盯具体款式。想盯某一款时加在这里
     watch: []

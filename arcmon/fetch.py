@@ -227,6 +227,36 @@ class SiteClient:
             raise FetchError("商品列表为空")
         return out
 
+    # ---------- 首页活动横幅 ----------
+    def home_banner(self) -> str | None:
+        """首页大横幅（标题/副标题/说明）+ 顶部通知条文字。拿不到返回 None。"""
+        status, text = self.http.get(f"{self.base}/", html=True)
+        if status != 200:
+            return None
+        m = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', text, re.S)
+        if not m:
+            return None
+        try:
+            pp = json.loads(m.group(1))["props"]["pageProps"]
+        except (json.JSONDecodeError, KeyError, TypeError):
+            return None
+        parts = []
+        hero = pp.get("heroBanner") or {}
+        hero_txt = " ".join(str(hero[k]).strip() for k in ("eyebrow", "title", "description")
+                            if isinstance(hero.get(k), str) and hero[k].strip())
+        if hero_txt:
+            parts.append(hero_txt)
+        nav = pp.get("navigationData")
+        if isinstance(nav, list):
+            nav = nav[0] if nav else {}
+        promo = (nav or {}).get("promoMessage") or {}
+        spans = [c.get("text", "") for block in promo.get("content") or [] if isinstance(block, dict)
+                 for c in block.get("children") or [] if isinstance(c, dict)]
+        bar = re.sub(r"\s+", " ", "".join(spans)).strip()
+        if bar:
+            parts.append(bar)
+        return " ｜ ".join(parts) or None
+
     # ---------- 商品详情（尺码库存） ----------
     def refresh_build_id(self) -> str:
         url = f"{self.base}/c/{'mens'}"
