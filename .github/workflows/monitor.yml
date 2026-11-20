@@ -1,9 +1,10 @@
 name: 始祖鸟监控
 
 on:
+  # 主要由 Google Apps Script 每 10 分钟、每晚 20:00 通过 workflow_dispatch 触发（见 trigger/google-apps-script.js）。
+  # GitHub 自带定时经常延迟或跳过，这里只留作备用；日报只由 Google 触发，避免一天两份。
   schedule:
-    - cron: "3-59/10 * * * *"   # 每 10 分钟（避开整点，GitHub 整点最拥堵）
-    - cron: "7 19 * * *"        # 每日汇总：UTC 19:07 = 柏林 20:07（冬令时）/ 21:07（夏令时）
+    - cron: "3-59/10 * * * *"
   workflow_dispatch:
     inputs:
       mode:
