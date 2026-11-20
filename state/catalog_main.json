@@ -4320,27 +4320,6 @@
    "since": "2026-11-20",
    "slug": "womens/sunna-speed-bird-crew-shirt-ss-0248"
   },
-  "X000010252": {
-   "colours": [
-    "Black"
-   ],
-   "gender": "womens",
-   "id": "X000010252",
-   "img": "https://images.arcteryx.com/S26/1350x1710/Sunna-Tank-W-Black.jpg",
-   "is_new": false,
-   "low": 999999,
-   "low_d": "2026-11-20",
-   "max": 999999,
-   "min": 999999,
-   "miss": 1,
-   "name": "Sunna Tank Women's",
-   "price": 60,
-   "seen": [
-    "Black"
-   ],
-   "since": "2026-11-20",
-   "slug": "womens/sunna-tank-0252"
-  },
   "X000010260": {
    "colours": [
     "Black",
@@ -9578,5 +9557,27 @@
    "slug": "nu-technical-detergent"
   }
  },
- "removed": {}
+ "removed": {
+  "X000010252": {
+   "colours": [
+    "Black"
+   ],
+   "gender": "womens",
+   "id": "X000010252",
+   "img": "https://images.arcteryx.com/S26/1350x1710/Sunna-Tank-W-Black.jpg",
+   "is_new": false,
+   "low": 999999,
+   "low_d": "2026-11-20",
+   "max": 999999,
+   "min": 999999,
+   "name": "Sunna Tank Women's",
+   "price": 60,
+   "removed": "2026-11-20",
+   "seen": [
+    "Black"
+   ],
+   "since": "2026-11-20",
+   "slug": "womens/sunna-tank-0252"
+  }
+ }
 }
