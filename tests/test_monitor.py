@@ -498,6 +498,18 @@ def test_banner_change():
     assert _pushes_after(cfg, sdir, site, t + timedelta(minutes=10)) == []    # 没再变就不重复推
 
 
+def test_placeholder_price_ignored():
+    """售罄商品价格变成 999999 再恢复：不能被当成「降价」推送。"""
+    cfg, sdir, site, t = _baseline()
+    x = site.find("outlet.arcteryx.com", "mens/squamish-hoody-0276")
+    real = dict(x["priceRange"])
+    x["priceRange"].update(minDiscountPrice=999999, maxDiscountPrice=999999)
+    s1 = _pushes_after(cfg, sdir, site, t)
+    x["priceRange"].update(real)
+    s2 = _pushes_after(cfg, sdir, site, t + timedelta(minutes=10))
+    assert not any("降价" in p.title for _, p in s1 + s2), [(p.title, p.body) for _, p in s1 + s2]
+
+
 def test_config_checks():
     from arcmon.config import ConfigError, load_config
     d = tempfile.mkdtemp()

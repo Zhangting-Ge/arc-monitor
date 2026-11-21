@@ -106,8 +106,19 @@ def _gender(slug: str, name: str) -> str:
     return "unisex"
 
 
+def _price(x):
+    """网站对售罄等商品会给 999999 这种占位价格，当作「没有价格」处理。"""
+    if x is None:
+        return None
+    try:
+        x = float(x)
+    except (TypeError, ValueError):
+        return None
+    return None if x <= 0 or x >= 99999 else (int(x) if x.is_integer() else x)
+
+
 def norm_listing(p: dict) -> dict:
-    pr = p.get("priceRange") or {}
+    pr = {k: _price(v) for k, v in (p.get("priceRange") or {}).items()}
     regular = pr.get("regularPrice")
     lo = pr.get("minDiscountPrice")
     lo = regular if lo is None else lo
@@ -153,8 +164,9 @@ def norm_detail(page: dict) -> dict | None:
             "colour": colours.get(cid) or cid,
             "size": sizes.get(sid) or ("均码" if not sizes else sid),
             "status": v.get("stockStatus") or "Unknown",
-            "price": v.get("discountPrice") if v.get("discountPrice") is not None else v.get("price"),
-            "regular": v.get("price"),
+            "price": _price(v.get("discountPrice")) if _price(v.get("discountPrice")) is not None
+            else _price(v.get("price")),
+            "regular": _price(v.get("price")),
         })
     return {
         "id": p.get("id"),
