@@ -666,6 +666,7 @@
    "low_d": "2026-11-20",
    "max": 84,
    "min": 84,
+   "miss": 1,
    "name": "Satoro SL Merino Wool Crew Neck LS Women's",
    "price": 120,
    "seen": [
@@ -1147,6 +1148,28 @@
    ],
    "since": "2026-11-20",
    "slug": "womens/atom-vest-9507"
+  },
+  "X000009510": {
+   "colours": [
+    "Alpine Rose",
+    "Arctic Silk"
+   ],
+   "gender": "womens",
+   "id": "X000009510",
+   "img": "https://images.arcteryx.com/S26/1350x1710/Atom-SL-Jacket-W-Arctic-Silk.jpg",
+   "is_new": false,
+   "low": 168,
+   "low_d": "2026-11-23",
+   "max": 168,
+   "min": 168,
+   "name": "Atom SL Jacket Women's",
+   "price": 240,
+   "seen": [
+    "Alpine Rose",
+    "Arctic Silk"
+   ],
+   "since": "2026-11-20",
+   "slug": "womens/atom-sl-jacket-9510"
   },
   "X000009511": {
    "colours": [
@@ -3214,6 +3237,7 @@
    "low_d": "2026-11-20",
    "max": 112,
    "min": 112,
+   "miss": 1,
    "name": "Covert 1/2 Zip Neck Men's",
    "price": 160,
    "seen": [
@@ -3769,29 +3793,5 @@
    "slug": "bird-trucker-hat-1285"
   }
  },
- "removed": {
-  "X000009510": {
-   "colours": [
-    "Alpine Rose",
-    "Arctic Silk"
-   ],
-   "gender": "womens",
-   "id": "X000009510",
-   "img": "https://images.arcteryx.com/S26/1350x1710/Atom-SL-Jacket-W-Arctic-Silk.jpg",
-   "is_new": false,
-   "low": 168,
-   "low_d": "2026-11-20",
-   "max": 168,
-   "min": 168,
-   "name": "Atom SL Jacket Women's",
-   "price": 240,
-   "removed": "2026-11-20",
-   "seen": [
-    "Alpine Rose",
-    "Arctic Silk"
-   ],
-   "since": "2026-11-20",
-   "slug": "womens/atom-sl-jacket-9510"
-  }
- }
+ "removed": {}
 }
