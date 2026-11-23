@@ -654,6 +654,26 @@
    "since": "2026-11-20",
    "slug": "womens/satoro-sl-merino-wool-crew-neck-ss-9045"
   },
+  "X000009046": {
+   "colours": [
+    "Black"
+   ],
+   "gender": "womens",
+   "id": "X000009046",
+   "img": "https://images.arcteryx.com/F25/1350x1710/Satoro-SL-Merino-Wool-Crew-Neck-LS-W-Black.jpg",
+   "is_new": false,
+   "low": 67.2,
+   "low_d": "2026-11-23",
+   "max": 67.2,
+   "min": 67.2,
+   "name": "Satoro SL Merino Wool Crew Neck LS Women's",
+   "price": 120,
+   "seen": [
+    "Black"
+   ],
+   "since": "2026-11-20",
+   "slug": "womens/satoro-sl-merino-wool-crew-neck-ls-9046"
+  },
   "X000009053": {
    "colours": [
     "Black/Multi"
@@ -3182,6 +3202,26 @@
    "since": "2026-11-20",
    "slug": "mens/norvan-downword-logo-tank-0344"
   },
+  "X000010360": {
+   "colours": [
+    "Black Heather II"
+   ],
+   "gender": "mens",
+   "id": "X000010360",
+   "img": "https://images.arcteryx.com/F25/1350x1710/Covert-1-2-Zip-Neck-Black-Heather-II.jpg",
+   "is_new": false,
+   "low": 112,
+   "low_d": "2026-11-23",
+   "max": 112,
+   "min": 112,
+   "name": "Covert 1/2 Zip Neck Men's",
+   "price": 160,
+   "seen": [
+    "Black Heather II"
+   ],
+   "since": "2026-11-20",
+   "slug": "mens/covert-1-2-zip-neck-0360"
+  },
   "X000010367": {
    "colours": [
     "Black"
@@ -3730,27 +3770,6 @@
   }
  },
  "removed": {
-  "X000009046": {
-   "colours": [
-    "Black"
-   ],
-   "gender": "womens",
-   "id": "X000009046",
-   "img": "https://images.arcteryx.com/F25/1350x1710/Satoro-SL-Merino-Wool-Crew-Neck-LS-W-Black.jpg",
-   "is_new": false,
-   "low": 67.2,
-   "low_d": "2026-11-23",
-   "max": 84,
-   "min": 84,
-   "name": "Satoro SL Merino Wool Crew Neck LS Women's",
-   "price": 120,
-   "removed": "2026-11-23",
-   "seen": [
-    "Black"
-   ],
-   "since": "2026-11-20",
-   "slug": "womens/satoro-sl-merino-wool-crew-neck-ls-9046"
-  },
   "X000009510": {
    "colours": [
     "Alpine Rose",
@@ -3773,27 +3792,6 @@
    ],
    "since": "2026-11-20",
    "slug": "womens/atom-sl-jacket-9510"
-  },
-  "X000010360": {
-   "colours": [
-    "Black Heather II"
-   ],
-   "gender": "mens",
-   "id": "X000010360",
-   "img": "https://images.arcteryx.com/F25/1350x1710/Covert-1-2-Zip-Neck-Black-Heather-II.jpg",
-   "is_new": false,
-   "low": 112,
-   "low_d": "2026-11-20",
-   "max": 112,
-   "min": 112,
-   "name": "Covert 1/2 Zip Neck Men's",
-   "price": 160,
-   "removed": "2026-11-23",
-   "seen": [
-    "Black Heather II"
-   ],
-   "since": "2026-11-20",
-   "slug": "mens/covert-1-2-zip-neck-0360"
   }
  }
 }
