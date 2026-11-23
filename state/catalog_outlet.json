@@ -666,6 +666,7 @@
    "low_d": "2026-11-23",
    "max": 67.2,
    "min": 67.2,
+   "miss": 1,
    "name": "Satoro SL Merino Wool Crew Neck LS Women's",
    "price": 120,
    "seen": [
@@ -3214,6 +3215,7 @@
    "low_d": "2026-11-23",
    "max": 112,
    "min": 112,
+   "miss": 1,
    "name": "Covert 1/2 Zip Neck Men's",
    "price": 160,
    "seen": [
