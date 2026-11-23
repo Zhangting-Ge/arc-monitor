@@ -10,9 +10,7 @@
  "fail_alerted": {},
  "promo": {
   "outlet": {
-   "active": true,
-   "ratio": 0.8,
-   "since": "2026-11-23"
+   "active": false
   }
  },
  "promo_acc": {}
