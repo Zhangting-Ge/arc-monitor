@@ -7,5 +7,13 @@
   "outlet": "0DNA5PmSCvy9O82tP2ooU"
  },
  "fail": {},
- "fail_alerted": {}
+ "fail_alerted": {},
+ "promo": {
+  "outlet": {
+   "active": true,
+   "ratio": 0.8,
+   "since": "2026-11-23"
+  }
+ },
+ "promo_acc": {}
 }
