@@ -31,8 +31,13 @@ subscribers:
       gender: mens                    # 只推男款（配件、背包这类不分男女的照推）
       sizes: [M]                      # 推送里标出 M 码哪些颜色有货，M 有货的排前面
 
-    # 关注清单：暂时不盯具体款式。想盯某一款时加在这里
-    watch: []
+    # 关注清单：M 码黑色有货 / 补货 / 降价时单独推送（会穿透专注模式）
+    watch:
+      - name: Cerium SV Vest 黑色 M
+        keywords: [cerium sv vest]      # 正价站和奥莱都盯，奥莱上了也会提醒
+        gender: mens
+        colours: [Black]
+        sizes: [M]
 
   # ---------------- 朋友：去掉下面每行开头的 "# " 启用，并添加同名 Secret ----------------
   # - name: 朋友A

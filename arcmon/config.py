@@ -173,6 +173,8 @@ class Feed:
         kind = FEED_KINDS.get(ev["type"])
         if not kind or ev["site"] not in getattr(self, kind):
             return False
+        if ev.get("brief") or ev.get("quiet"):
+            return False    # 短暂下架又回来 / 同一场活动重复识别：只记录不推送
         return ev["type"] in SITE_LEVEL or self.passes_filters(ev)
 
     def passes_filters(self, ev: dict) -> bool:

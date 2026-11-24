@@ -253,22 +253,29 @@ def test_full_cycle():
     assert any(t.startswith("奥莱：上新") for t in friend), friend
     assert not any("正价站" in t for t in friend)    # 朋友只订了奥莱
 
-    # ---- 第 4 次：连续第二次不在列表 → 确认下架；Gamma MX 补货 ----
+    # ---- 第 4 次：Gamma MX 补货；下架的商品连续第二次不在列表，仍不算下架 ----
     site.stock_override[(M, "mens/gamma-mx-hoody-8485", black, "M")] = "LowStock"     # 补货（少量）
     b4 = Bark(dry_run=True)
     run(cfg, State(sdir), site, b4, now=t0 + timedelta(minutes=30))
     types = [json.loads(ln)["type"] for ln in open(os.path.join(sdir, "events.jsonl"), encoding="utf-8")]
-    assert "removed" in types, types
+    assert "removed" not in types, types
     restock = [p for n, p in b4.sent if n == "我" and "补货了" in p.title]
     assert restock and restock[0].subtitle == "Gamma MX Hoody Men's", [p.title for _, p in b4.sent]
     assert restock[0].level == "timeSensitive" and "M（Black） 有货了（库存紧张）" in restock[0].body, restock[0].body
     assert restock[0].url == "https://arcteryx.com/de/en/shop/mens/gamma-mx-hoody-8485"
 
-    # ---- 第 5 次：下架的商品重新上架 ----
-    site.plp[f"{O}|mens/"].append(copy.deepcopy(
-        [x for p in FIX["plp"][f"{O}|mens/"] for x in p["productList"] if x["slug"] == "mens/alpha-jacket-9898"][0]))
+    # ---- 第 5 次：连续第三次不在列表 → 确认下架 ----
+    run(cfg, State(sdir), site, Bark(dry_run=True), now=t0 + timedelta(minutes=40))
+    types = [json.loads(ln)["type"] for ln in open(os.path.join(sdir, "events.jsonl"), encoding="utf-8")]
+    assert "removed" in types, types
+
+    # ---- 8 小时后：下架的商品重新上架 → 推送 ----
+    alpha = copy.deepcopy(
+        [x for p in FIX["plp"][f"{O}|mens/"] for x in p["productList"] if x["slug"] == "mens/alpha-jacket-9898"][0])
+    site.plp[f"{O}|mens/"].append(alpha)
+    T = t0 + timedelta(hours=8)
     b5 = Bark(dry_run=True)
-    run(cfg, State(sdir), site, b5, now=t0 + timedelta(minutes=35))
+    run(cfg, State(sdir), site, b5, now=T)
     assert any("重新上架" in p.body for n, p in b5.sent if n == "我"), [p.body for _, p in b5.sent]
 
     # ---- 被拦截：连续 3 次失败才提醒一次，恢复后再提醒一次；故障期间状态文件不再变化 ----
@@ -276,7 +283,7 @@ def test_full_cycle():
     alerts = []
     for i in range(5):
         b = Bark(dry_run=True)
-        r = run(cfg, State(sdir), site, b, now=t0 + timedelta(minutes=40 + i * 10))
+        r = run(cfg, State(sdir), site, b, now=T + timedelta(minutes=10 + i * 10))
         assert "main" in r["failures"]
         alerts += [p.body for n, p in b.sent if "系统" in p.title]
         if i >= 3:
@@ -284,16 +291,16 @@ def test_full_cycle():
     assert len(alerts) == 1 and "正价站已连续 3 次" in alerts[0], alerts
     site.blocked.clear()
     b = Bark(dry_run=True)
-    run(cfg, State(sdir), site, b, now=t0 + timedelta(minutes=90))
+    run(cfg, State(sdir), site, b, now=T + timedelta(minutes=60))
     assert any("恢复正常" in p.body for _, p in b.sent)
     # 失败期间正价站没有被误判成"全部下架"
     b = Bark(dry_run=True)
-    r = run(cfg, State(sdir), site, b, now=t0 + timedelta(minutes=100))
+    r = run(cfg, State(sdir), site, b, now=T + timedelta(minutes=70))
     assert r["events"] == 0, r
 
     # ---- 每日汇总 ----
     b6 = Bark(dry_run=True)
-    n = digest(cfg, State(sdir), b6, now=t0 + timedelta(hours=9))
+    n = digest(cfg, State(sdir), b6, now=t0 + timedelta(hours=10))
     assert n == 1  # 朋友A 关了日报
     body = b6.sent[0][1].body
     print("\n日报：\n" + body)
@@ -484,9 +491,32 @@ def test_outlet_promo_extra_discount():
     b = Bark(dry_run=True)
     digest(cfg, State(sdir), b, now=t + timedelta(minutes=30))
     assert "折上折进行中" in b.sent[0][1].body, b.sent[0][1].body
-    apply(set(ids), 1.0)                               # 活动结束
-    s4 = _pushes_after(cfg, sdir, site, t + timedelta(minutes=40))
-    assert any("折上折结束" in p.title for _, p in s4), [p.title for _, p in s4]
+    apply(set(ids), 1.0)                               # 活动真的结束：价格持续回升
+    s4 = _pushes_after(cfg, sdir, site, t + timedelta(minutes=40), n=6)
+    ends = [p for _, p in s4 if "折上折结束" in p.title]
+    assert len(ends) == 1, [p.title for _, p in s4]
+
+
+def test_promo_flapping_like_black_friday_2026():
+    """复现 11/23 的情况：活动价出现后，CDN 新旧价格来回跳。不能推「结束」再推「开始」。"""
+    cfg, sdir, site, t = _baseline()
+    O = "outlet.arcteryx.com"
+    keys = [k for k in site.plp if k.startswith(O + "|")]
+    orig = {x["id"]: dict(x["priceRange"]) for k in keys for x in site.plp[k]}
+
+    def prices(f):
+        for k in keys:
+            for x in site.plp[k]:
+                o = orig[x["id"]]
+                x["priceRange"].update(minDiscountPrice=round(o["minDiscountPrice"] * f, 2),
+                                       maxDiscountPrice=round(o["maxDiscountPrice"] * f, 2))
+    seq = [0.8, 1.0, 1.0, 0.8, 0.8, 1.0, 0.8, 0.8, 0.8]      # 10 分钟一次，新旧价格来回
+    titles = []
+    for i, f in enumerate(seq):
+        prices(f)
+        titles += [p.title for w, p in _pushes_after(cfg, sdir, site, t + timedelta(minutes=10 * i)) if w == "我"]
+    assert sum("折上折开始" in x for x in titles) == 1, titles
+    assert not any("折上折结束" in x for x in titles), titles
 
 
 def test_banner_change():

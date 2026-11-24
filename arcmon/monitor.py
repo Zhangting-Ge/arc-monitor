@@ -24,6 +24,10 @@ LOW_PRICE_MEMORY_DAYS = 60  # 「新低价」的记忆期
 PROMO_SHARE = 0.3           # 多少比例的商品同时降价/涨价算「全场活动」开始/结束
 PROMO_MIN_COUNT = 10
 PROMO_WINDOW_HOURS = 3      # 活动改价可能分几轮生效，在这个时间窗内累计
+PROMO_END_CONFIRM_MIN = 35  # 活动价回升要持续这么久才算结束（改价后 CDN 新旧价格会来回跳十几分钟）
+PROMO_REANNOUNCE_HOURS = 48 # 活动结束后这么久内又「开始」，视为同一场活动，不再推送
+MISS_TO_REMOVE = 3          # 连续几次不在列表里才算下架
+BRIEF_GONE_HOURS = 6        # 下架不到这么久又回来，多半是数据抖动或短暂售罄，不推「重新上架」
 BANNER_SITES = ("outlet",)  # 监控首页横幅的站点
 # 查尺码时服装优先：这些通常没有 S/M/L 尺码
 NON_APPAREL = re.compile(r"\b(shoe|boot|hat|cap|toque|beanie|glove|mitten|sock|backpack|pack|bag|belt|"
@@ -88,7 +92,11 @@ def diff_catalog(site: str, prev: dict | None, cur: dict[str, dict], now: dateti
                 _fresh(n, today)
                 n["since"] = back.get("since", today)
                 n["seen"] = sorted(set(back.get("seen") or []) | set(n["colours"]))
-                events.append(_ev(now, "back_in_catalog", site, n, gone_since=back.get("removed")))
+                gone_h = None
+                if back.get("removed_at"):
+                    gone_h = (now - datetime.fromisoformat(back["removed_at"])).total_seconds() / 3600
+                events.append(_ev(now, "back_in_catalog", site, n, gone_since=back.get("removed"),
+                                  brief=gone_h is not None and gone_h < BRIEF_GONE_HOURS))
             else:
                 _fresh(n, today)
                 events.append(_ev(now, "new_product", site, n))
@@ -112,11 +120,13 @@ def diff_catalog(site: str, prev: dict | None, cur: dict[str, dict], now: dateti
 
     for pid in sorted(old.keys() - cur.keys()):
         o = old[pid]
-        if o.get("miss"):
-            removed[pid] = {k: v for k, v in o.items() if k != "miss"} | {"removed": today}
+        miss = int(o.get("miss") or 0) + 1
+        if miss >= MISS_TO_REMOVE:
+            removed[pid] = {k: v for k, v in o.items() if k != "miss"} | {
+                "removed": today, "removed_at": now.isoformat(timespec="seconds")}
             events.append(_ev(now, "removed", site, o))
         else:
-            products[pid] = {**o, "miss": 1}
+            products[pid] = {**o, "miss": miss}
 
     cutoff = (now - timedelta(days=90)).date().isoformat()
     removed = {k: v for k, v in removed.items() if v.get("removed", "") >= cutoff}
@@ -131,52 +141,83 @@ def _median(xs: list[float]) -> float:
 
 
 def detect_promo(site: str, old: dict, cur: dict, meta: dict, now: datetime) -> list[dict]:
-    """同一时段大量商品同时降价 → 全场活动开始；大量同时涨价 → 结束。
+    """同一时段大量商品同时降价 → 全场活动开始；活动价持续回升 → 结束。
 
-    改价可能分几轮才全部生效，所以在 PROMO_WINDOW_HOURS 内累计。只在有价格变化时才写状态。
+    - 开始：改价可能分几轮生效，在 PROMO_WINDOW_HOURS 内累计降价商品，够三成就算开始
+    - 结束：记下每个商品的活动价，一半以上回升 5% 以上、并持续 PROMO_END_CONFIRM_MIN 分钟才算结束。
+      改价后十几分钟内，不同 CDN 节点会新旧价格来回返回，单次回升不作数
+    - 结束后 PROMO_REANNOUNCE_HOURS 内又识别到开始：视为同一场活动，只记录不推送
+    只在有价格变化或状态变化时才写状态，免得每次运行都产生提交。
     """
     common = [k for k, o in old.items() if not o.get("miss") and k in cur and o.get("min") and cur[k].get("min")]
     if len(common) < 20:
         return []
+    t = now.isoformat(timespec="seconds")
+    promos = meta.get("promo") or {}
+    st = dict(promos.get(site) or {"active": False})
     down = {k: round(cur[k]["min"] / old[k]["min"], 3) for k in common if cur[k]["min"] < old[k]["min"] * 0.97}
-    up = {k: round(cur[k]["min"] / old[k]["min"], 3) for k in common if cur[k]["min"] > old[k]["min"] * 1.03}
+    events: list[dict] = []
+
+    if st.get("active"):
+        prices = dict(st.get("prices") or {})
+        changed = False
+        if not prices:                                   # 旧版状态没有记录活动价：用当前价格补上
+            prices = {k: cur[k]["min"] for k in common}
+            changed = True
+        for k in down:                                   # 活动期间新一批降价：并入活动价
+            if k not in prices or cur[k]["min"] < prices[k] - 0.005:
+                prices[k] = cur[k]["min"]
+                changed = True
+        tracked = [k for k in prices if k in cur and cur[k].get("min")]
+        back = [k for k in tracked if cur[k]["min"] > prices[k] * 1.05]
+        if tracked and len(back) >= max(PROMO_MIN_COUNT, 0.5 * len(tracked)):
+            since = st.get("end_since")
+            if not since:
+                st["end_since"] = t
+                changed = True
+            elif since <= (now - timedelta(minutes=PROMO_END_CONFIRM_MIN)).isoformat(timespec="seconds"):
+                events.append({"t": t, "type": "promo_end", "site": site, "ratio": st.get("ratio", 1),
+                               "count": len(back), "total": len(tracked)})
+                st = {"active": False, "ended": t, "last_ratio": st.get("ratio")}
+                prices = {}
+                changed = True
+        elif st.get("end_since"):
+            st.pop("end_since")                          # 只是抖动，活动还在
+            changed = True
+        if changed:
+            if st.get("active"):
+                st["prices"] = prices
+            meta.setdefault("promo", {})[site] = st
+            meta.setdefault("promo_acc", {}).pop(site, None)
+        return events
+
     acc = (meta.get("promo_acc") or {}).get(site)
-    cutoff = (now - timedelta(hours=PROMO_WINDOW_HOURS)).isoformat(timespec="seconds")
-    if acc and acc.get("since", "") < cutoff:
+    if acc and acc.get("since", "") < (now - timedelta(hours=PROMO_WINDOW_HOURS)).isoformat(timespec="seconds"):
         acc = None
-    if not acc and not down and not up:
+    if not acc and not down:
         if site in (meta.get("promo_acc") or {}):
             del meta["promo_acc"][site]
-        return []                      # 没有价格变化：不碰状态，免得产生提交
-    promos = meta.setdefault("promo", {})
-    st = promos.get(site) or {"active": False}
-    acc_all = meta.setdefault("promo_acc", {})
-    acc = acc or {"since": now.isoformat(timespec="seconds"), "down": {}, "up": {}}
+        return []
+    acc = acc or {"since": t, "down": {}}
+    acc.setdefault("down", {})
     for k, r in down.items():
         acc["down"][k] = round(acc["down"].get(k, 1) * r, 3)
-        acc["up"].pop(k, None)
-    for k, r in up.items():
-        acc["up"][k] = round(acc["up"].get(k, 1) * r, 3)
-        acc["down"].pop(k, None)
+    for k in [k for k in acc["down"] if k in cur and k in old and cur[k].get("min") and old[k].get("min")
+              and cur[k]["min"] > old[k]["min"] * 1.03]:
+        acc["down"].pop(k)                               # 价格又回去了，不算
     need = max(PROMO_MIN_COUNT, PROMO_SHARE * len(common))
-    t = now.isoformat(timespec="seconds")
-    events = []
-    if not st.get("active") and len(acc["down"]) >= need:
+    if len(acc["down"]) >= need:
         ratio = _median(list(acc["down"].values()))
-        st = {"active": True, "ratio": ratio, "since": now.astimezone(BERLIN).date().isoformat()}
-        events.append({"t": t, "type": "promo_start", "site": site, "ratio": ratio,
+        recent = st.get("ended") and st["ended"] >= (now - timedelta(hours=PROMO_REANNOUNCE_HOURS)).isoformat(
+            timespec="seconds")
+        st = {"active": True, "ratio": ratio, "since": now.astimezone(BERLIN).date().isoformat(),
+              "prices": {k: cur[k]["min"] for k in acc["down"] if k in cur and cur[k].get("min")}}
+        events.append({"t": t, "type": "promo_start", "site": site, "ratio": ratio, "quiet": bool(recent),
                        "count": len(acc["down"]), "total": len(common), "pids": sorted(acc["down"])})
-        acc = None
-    elif st.get("active") and len(acc["up"]) >= need:
-        events.append({"t": t, "type": "promo_end", "site": site, "ratio": st.get("ratio", 1),
-                       "count": len(acc["up"]), "total": len(common)})
-        st = {"active": False}
-        acc = None
-    promos[site] = st
-    if acc:
-        acc_all[site] = acc
+        meta.setdefault("promo", {})[site] = st
+        meta.setdefault("promo_acc", {}).pop(site, None)
     else:
-        acc_all.pop(site, None)
+        meta.setdefault("promo_acc", {})[site] = acc
     return events
 
 
