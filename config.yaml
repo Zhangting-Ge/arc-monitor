@@ -22,12 +22,12 @@ subscribers:
     daily_digest: true     # 每晚 20:07 发当天汇总
 
     # 全站动态：只看男款，重点是奥莱
+    # 奥莱只看新上架的货（已有的款不再推降价/重新上架）；正价站看降价和全场打折
     feed:
-      new_products: [outlet]          # 奥莱上新（列出价格、几折、所有颜色、M 码哪些颜色有货）
-      back_in_catalog: [outlet]       # 奥莱售罄后重新上架
-      price_drops: [outlet, main]     # 降价（正价站开始打折 / 奥莱再降价）
-      promo: [outlet, main]           # 全场折上折开始/结束（如黑五奥莱在折扣价上再打 85 折）
-      banner: [outlet]                # 奥莱首页活动横幅变化
+      new_products: [outlet]          # 奥莱新上架的款（价格、几折、所有颜色、M 码哪些颜色有货）
+      new_colours: [outlet]           # 奥莱已有款式新到的配色
+      price_drops: [main]             # 正价站男款降价
+      promo: [main]                   # 正价站全场打折开始/结束
       gender: mens                    # 只推男款（配件、背包这类不分男女的照推）
       sizes: [M]                      # 推送里标出 M 码哪些颜色有货，M 有货的排前面
 
