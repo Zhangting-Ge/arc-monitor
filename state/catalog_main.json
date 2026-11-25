@@ -3794,6 +3794,7 @@
    "low_d": "2026-11-20",
    "max": 280,
    "min": 280,
+   "miss": 1,
    "name": "Sonii MX Jacket Women's",
    "price": 400,
    "seen": [
@@ -8014,6 +8015,7 @@
    "low_d": "2026-11-20",
    "max": 120,
    "min": 120,
+   "miss": 1,
    "name": "Rho Hoody Women's",
    "price": 120,
    "seen": [
