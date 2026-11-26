@@ -7,10 +7,7 @@
   "main": "0DNA5PmSCvy9O82tP2ooU",
   "outlet": "0DNA5PmSCvy9O82tP2ooU"
  },
- "fail": {
-  "main": 1,
-  "outlet": 1
- },
+ "fail": {},
  "fail_alerted": {},
  "promo": {
   "outlet": {
