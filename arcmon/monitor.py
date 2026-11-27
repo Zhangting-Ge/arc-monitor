@@ -56,6 +56,7 @@ def _fresh(p: dict, today: str) -> dict:
     p["since"] = today
     p["seen"] = list(p["colours"])
     p["low"], p["low_d"] = p.get("min"), today
+    p["low_max"], p["low_max_d"] = p.get("max"), today
     return p
 
 
@@ -112,10 +113,21 @@ def diff_catalog(site: str, prev: dict | None, cur: dict[str, dict], now: dateti
         if low_d < low_cutoff:
             low, low_d = o.get("min"), today
         n["low"], n["low_d"] = low, low_d
+        min_dropped = False
         if n.get("min") is not None and low is not None and n["min"] < low - 0.005:
             if o.get("min") is not None and n["min"] < o["min"] - 0.005:
                 events.append(_ev(now, "price_drop", site, n, old_min=o["min"]))
+                min_dropped = True
             n["low"], n["low_d"] = n["min"], today
+        # 更多颜色打折：最低价没变、最高价创近期新低，说明原价的颜色也开始打折了
+        low_max, low_max_d = o.get("low_max", o.get("max")), o.get("low_max_d", today)
+        if low_max_d < low_cutoff:
+            low_max, low_max_d = o.get("max"), today
+        n["low_max"], n["low_max_d"] = low_max, low_max_d
+        if n.get("max") is not None and low_max is not None and n["max"] < low_max - 0.005:
+            if not min_dropped and o.get("max") is not None and n["max"] < o["max"] - 0.005:
+                events.append(_ev(now, "colour_sale", site, n, old_max=o["max"]))
+            n["low_max"], n["low_max_d"] = n["max"], today
         products[pid] = n
 
     for pid in sorted(old.keys() - cur.keys()):
@@ -351,7 +363,7 @@ def process_watch(cfg: Config, state: State, clients: dict, catalogs: dict,
                 wanted = [v for v in d["variants"] if rule.wants_variant(v, d["has_sizes"])]
                 av = [v for v in wanted if v["status"] in AVAILABLE]
                 cur = {
-                    "site": site, "slug": slug, "name": d["name"], "img": d["img"],
+                    "site": site, "slug": slug, "name": d["name"], "img": (prev or {}).get("img") or d["img"],
                     "a": sorted({f"{v['colour']}|{v['size']}" for v in av}),
                     "low": sorted({f"{v['colour']}|{v['size']}" for v in av if v["status"] == "LowStock"}),
                     "p": min((v["price"] for v in av if v["price"] is not None), default=None),
@@ -461,7 +473,8 @@ def run(cfg: Config, state: State, http, bark: Bark, now: datetime | None = None
         if not sub.feed.sizes:
             continue
         for e in events:
-            if (e["type"] in ("new_product", "back_in_catalog", "price_drop") and sub.feed.wants(e)
+            if (e["type"] in ("new_product", "back_in_catalog", "price_drop", "colour_sale", "new_colour")
+                    and sub.feed.wants(e)
                     and not (e["type"] == "price_drop" and e["site"] in promo_sites)):
                 feed_keys.append((e["site"], e["slug"]))
         for e in events:
@@ -526,7 +539,8 @@ def run(cfg: Config, state: State, http, bark: Bark, now: datetime | None = None
                                           sub.feed, feed_details))
             elif e["type"] == "banner_change":
                 bark.send(sub, banner_push(e, cfg.country, cfg.language))
-        feed = [e for e in wanted if e["type"] in ("new_product", "back_in_catalog", "price_drop", "new_colour")
+        feed = [e for e in wanted if e["type"] in ("new_product", "back_in_catalog", "price_drop", "colour_sale",
+                                                   "new_colour")
                 and not (e["type"] == "price_drop" and e["site"] in my_promo_sites)]   # 折上折时降价已在活动推送里
         hint = "，今晚汇总里看" if sub.digest else ""
         for p in feed_pushes(feed, cfg.country, cfg.language, hint, sizes=sub.feed.sizes, details=feed_details):
@@ -548,7 +562,7 @@ def digest(cfg: Config, state: State, bark: Bark, now: datetime | None = None) -
     now = now or _now()
     events = state.read_events(now - timedelta(hours=24))
     local = now.astimezone(BERLIN)
-    names = {"new_product": "上新", "new_colour": "新配色", "price_drop": "降价",
+    names = {"new_product": "上新", "new_colour": "新配色", "price_drop": "降价", "colour_sale": "更多颜色打折",
              "back_in_catalog": "重新上架", "removed": "下架"}
     count = 0
     for sub in cfg.subscribers:

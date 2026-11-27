@@ -22,6 +22,7 @@ FEED_KINDS = {
     "new_product": "new_products",
     "new_colour": "new_colours",
     "price_drop": "price_drops",
+    "colour_sale": "price_drops",
     "back_in_catalog": "back_in_catalog",
     "promo_start": "promo",
     "promo_end": "promo",

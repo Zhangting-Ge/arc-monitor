@@ -70,8 +70,9 @@ def sizes_text(keys: list[str]) -> str:
 
 
 # ---------------- 全站动态 ----------------
-_FEED_ORDER = {"new_product": 0, "back_in_catalog": 1, "price_drop": 2, "new_colour": 3}
-_FEED_NAME = {"new_product": "上新", "back_in_catalog": "重新上架", "price_drop": "降价", "new_colour": "新配色"}
+_FEED_ORDER = {"new_product": 0, "back_in_catalog": 1, "price_drop": 2, "colour_sale": 3, "new_colour": 4}
+_FEED_NAME = {"new_product": "上新", "back_in_catalog": "重新上架", "price_drop": "降价",
+              "colour_sale": "更多颜色打折", "new_colour": "新配色"}
 
 
 def size_avail(detail: dict | None, sizes: list[str]) -> list[str] | None:
@@ -104,8 +105,12 @@ def feed_line(ev: dict, avail: list[str] | None = None, sizes: list[str] | None 
     elif t == "price_drop":
         z = zhe(ev["min"], ev["price"])
         head = f"📉 {ev['name']} {eur(ev['old_min'])}→{eur(ev['min'])}" + (f"（{z}，原价{eur(ev['price'])}）" if z else "")
+    elif t == "colour_sale":
+        head = (f"🏷️ {ev['name']} 更多颜色打折：最高价 {eur(ev['old_max'])}→{eur(ev['max'])}，"
+                f"现价 {price_text(ev['min'], ev['max'], ev['price'])}")
     elif t == "new_colour":
-        head = f"🎨 {ev['name']} 新配色：{'、'.join(ev['new_colours'])}"
+        head = (f"🎨 {ev['name']} 新配色：{'、'.join(ev['new_colours'])}，"
+                f"现价 {price_text(ev['min'], ev['max'], ev['price'])}")
     else:
         head = f"{t} {ev.get('name')}"
     extra = []

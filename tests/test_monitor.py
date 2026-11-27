@@ -338,7 +338,7 @@ def test_detail_budget_rotation():
         assert v["ready_sites"] and v["announced"], k
 
 
-def _baseline(cfg=None, sdir=None, site=None, runs=1, t0=datetime(2026, 11, 20, tzinfo=timezone.utc)):
+def _baseline(cfg=None, sdir=None, site=None, runs=1, t0=datetime(2026, 11, 20, tzinfo=timezone.utc)):  # noqa: B008
     if cfg is None:
         cfg, sdir = _setup()
     site = site or FakeSite()
@@ -538,6 +538,36 @@ def test_placeholder_price_ignored():
     x["priceRange"].update(real)
     s2 = _pushes_after(cfg, sdir, site, t + timedelta(minutes=10))
     assert not any("降价" in p.title for _, p in s1 + s2), [(p.title, p.body) for _, p in s1 + s2]
+
+
+def test_colour_level_sale_and_new_colour_on_main():
+    """某个颜色原来是原价、后来也打折（最低价不变）要推；正价站新配色要带价格。"""
+    M = "arcteryx.com"
+    site = FakeSite()
+    items = [x for x in site.plp[f"{M}|mens/"]]
+    mixed = next(x for x in items if "Men's" in x["marketingName"])
+    reg = mixed["priceRange"]["regularPrice"]
+    lo = round(reg * 0.8, 2)
+    for k in site.plp:                                   # 基线时：一个颜色 8 折，其他颜色原价
+        if k.startswith(M + "|"):
+            for x in site.plp[k]:
+                if x["id"] == mixed["id"]:
+                    x["priceRange"].update(minDiscountPrice=lo, maxDiscountPrice=reg)
+    cfg, sdir, site, t = _baseline(site=site)
+    for k in site.plp:
+        if k.startswith(M + "|"):
+            for x in site.plp[k]:
+                if x["id"] == mixed["id"]:
+                    x["priceRange"]["maxDiscountPrice"] = lo          # 原价的颜色也降到折扣价
+    plain = next(x for x in items if x["id"] != mixed["id"] and "Men's" in x["marketingName"]
+                 and x["priceRange"]["minDiscountPrice"] == x["priceRange"]["regularPrice"])
+    plain["colourOptions"].append({"label": "Brand New Teal", "badges": [], "selected": False})
+    sent = _pushes_after(cfg, sdir, site, t)
+    body = "\n".join(p.body for w, p in sent if w == "我")
+    print("\n" + body)
+    assert f"{mixed['marketingName']} 更多颜色打折" in body, body
+    assert f"{plain['marketingName']} 新配色：Brand New Teal，现价" in body, body
+    assert _pushes_after(cfg, sdir, site, t + timedelta(minutes=10)) == []      # 不重复推
 
 
 def test_config_checks():
