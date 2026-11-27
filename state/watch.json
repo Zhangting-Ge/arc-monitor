@@ -3,12 +3,16 @@
   "announced": true,
   "items": {
    "main:mens/cerium-sv-vest-8428": {
-    "a": [],
+    "a": [
+     "Black|M"
+    ],
     "img": "https://images.arcteryx.com/details/1350x1710/F26-X000008428-Cerium-SV-Vest-Black-Front-View.jpg",
-    "low": [],
+    "low": [
+     "Black|M"
+    ],
     "name": "Cerium SV Vest Men's",
-    "p": null,
-    "r": null,
+    "p": 280,
+    "r": 350,
     "site": "main",
     "slug": "mens/cerium-sv-vest-8428"
    }
